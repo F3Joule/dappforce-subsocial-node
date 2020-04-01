@@ -631,6 +631,14 @@ fn create_post_should_work() {
 }
 
 #[test]
+fn create_post_should_fail_blog_not_defined() {
+  new_test_ext().execute_with(|| {
+    assert_ok!(_create_default_blog()); // BlogId 1
+    assert_noop!(_create_post(None, Some(None), None, None), Error::<Test>::BlogIdIsUndefined);
+  });
+}
+
+#[test]
 fn create_post_should_fail_blog_not_found() {
   new_test_ext().execute_with(|| {
     assert_noop!(_create_default_post(), Error::<Test>::BlogNotFound);

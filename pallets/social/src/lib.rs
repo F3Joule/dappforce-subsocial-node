@@ -203,6 +203,8 @@ decl_error! {
     NotAnAuthor,
     /// Overflow caused adding post on blog
     OverflowAddingPostOnBlog,
+    /// Cannot create post not defining blog_id
+    BlogIdIsUndefined,
 
     /// Unknown parent comment id
     UnknownParentComment,
@@ -710,6 +712,8 @@ decl_module! {
           <BlogById<T>>::insert(blog_id, blog);
           PostIdsByBlogId::mutate(blog_id, |ids| ids.push(new_post_id));
           Self::deposit_event(RawEvent::PostCreated(owner.clone(), new_post_id));
+      } else {
+        return Err(Error::<T>::BlogIdIsUndefined.into());
       }
 
       <PostById<T>>::insert(new_post_id, new_post);
