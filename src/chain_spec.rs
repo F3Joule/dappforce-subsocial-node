@@ -23,6 +23,7 @@ pub enum Alternative {
 	Development,
 	/// Whatever the current runtime is, with simple Alice/Bob auths.
 	LocalTestnet,
+	StagingTestnet,
 }
 
 /// Helper function to generate a crypto pair from seed
@@ -102,13 +103,38 @@ impl Alternative {
 				None,
 				None
 			),
+			Alternative::StagingTestnet => ChainSpec::from_genesis(
+				"Subsocial Testnet",
+				"subsocial_testnet",
+				|| testnet_genesis(vec![
+					get_authority_keys_from_seed("Alice"),
+					get_authority_keys_from_seed("Bob"),
+				],
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				vec![
+					get_account_id_from_seed::<sr25519::Public>("Alice"),
+					get_account_id_from_seed::<sr25519::Public>("Bob"),
+					get_account_id_from_seed::<sr25519::Public>("Charlie"),
+					get_account_id_from_seed::<sr25519::Public>("Dave"),
+					get_account_id_from_seed::<sr25519::Public>("Eve"),
+					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+				],
+				true),
+				vec![],
+				None,
+				None,
+				None,
+				None
+			),
 		})
 	}
 
 	pub(crate) fn from(s: &str) -> Option<Self> {
 		match s {
 			"dev" => Some(Alternative::Development),
-			"" | "local" => Some(Alternative::LocalTestnet),
+			"local" => Some(Alternative::LocalTestnet),
+			"" | "df" => Some(Alternative::StagingTestnet),
 			_ => None,
 		}
 	}
