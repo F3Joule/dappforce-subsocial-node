@@ -288,16 +288,12 @@ decl_error! {
 
     /// Original post not found when sharing
     OriginalPostNotFound,
-    /// Overflow caused on total shares counter when sharing post
-    OverflowTotalSharesSharingPost,
-    /// Overflow caused on shares by account counter when sharing post
-    OverflowPostSharesSharingPost,
-    /// Cannot share post that is not a regular post
+    /// Overflow caused on total shares counter when sharing post/comment
+    OverflowTotalShares,
+    /// Overflow caused on shares by account counter when sharing post/comment
+    OverflowPostShares,
+    /// Cannot share post that is not a RegularPost
     CannotShareSharedPost,
-    /// Overflow caused on total shares counter when sharing comment
-    OverflowTotalSharesSharingComment,
-    /// Overflow caused on shares by account counter when sharing comment
-    OverflowCommentSharesByAccount,
 
     /// Profile for this account already exists
     ProfileAlreadyExists,
@@ -351,9 +347,7 @@ decl_storage! {
     pub CommentIdsByPostId get(comment_ids_by_post_id): map PostId => Vec<PostId>;
 
     pub ReactionIdsByPostId get(reaction_ids_by_post_id): map PostId => Vec<ReactionId>;
-    pub ReactionIdsByCommentId get(reaction_ids_by_comment_id): map PostId => Vec<ReactionId>;
     pub PostReactionIdByAccount get(post_reaction_id_by_account): map (T::AccountId, PostId) => ReactionId;
-    pub CommentReactionIdByAccount get(comment_reaction_id_by_account): map (T::AccountId, PostId) => ReactionId;
 
     pub BlogIdBySlug get(blog_id_by_slug): map Vec<u8> => Option<BlogId>;
 
@@ -371,13 +365,9 @@ decl_storage! {
 
     pub AccountReputationDiffByAccount get(account_reputation_diff_by_account): map (T::AccountId, T::AccountId, ScoringAction) => Option<i16>; // TODO shorten name (?refactor)
     pub PostScoreByAccount get(post_score_by_account): map (T::AccountId, PostId, ScoringAction) => Option<i16>;
-    pub CommentScoreByAccount get(comment_score_by_account): map (T::AccountId, PostId, ScoringAction) => Option<i16>;
 
     pub PostSharesByAccount get(post_shares_by_account): map (T::AccountId, PostId) => u16;
     pub SharedPostIdsByOriginalPostId get(shared_post_ids_by_original_post_id): map PostId => Vec<PostId>;
-
-    pub CommentSharesByAccount get(comment_shares_by_account): map (T::AccountId, PostId) => u16;
-    pub SharedPostIdsByOriginalCommentId get(shared_post_ids_by_original_comment_id): map PostId => Vec<PostId>;
 
     pub AccountByProfileUsername get(account_by_profile_username): map Vec<u8> => Option<T::AccountId>;
   }
@@ -674,9 +664,9 @@ decl_module! {
           is_comment = Some(comment_ext);
         },
         PostExtension::SharedPost(post_id) => {
-          let post = Self::post_by_id(post_id).ok_or(Error::<T>::OriginalPostNotFound)?;
+          let ref mut post = Self::post_by_id(post_id).ok_or(Error::<T>::OriginalPostNotFound)?;
           ensure!(!post.is_shared_post(), Error::<T>::CannotShareSharedPost);
-          Self::share_post_by_extension(owner.clone(), post_id, new_post_id)?;
+          Self::share_post(owner.clone(), post, new_post_id)?;
         },
       }
 
@@ -791,17 +781,10 @@ decl_module! {
       let owner = ensure_signed(origin)?;
 
       let ref mut post = Self::post_by_id(post_id).ok_or(Error::<T>::PostNotFound)?;
-      if post.is_comment() {
-        ensure!(
-          !<CommentReactionIdByAccount<T>>::exists((owner.clone(), post_id)),
-          Error::<T>::AccountAlreadyReacted
-        );
-      } else {
-        ensure!(
-          !<PostReactionIdByAccount<T>>::exists((owner.clone(), post_id)),
-          Error::<T>::AccountAlreadyReacted
-        );
-      }
+      ensure!(
+        !<PostReactionIdByAccount<T>>::exists((owner.clone(), post_id)),
+        Error::<T>::AccountAlreadyReacted
+      );
 
       let reaction_id = Self::new_reaction(owner.clone(), kind.clone());
 
@@ -818,14 +801,8 @@ decl_module! {
         <PostById<T>>::insert(post_id, post.clone());
       }
 
-      if post.is_comment() {
-        ReactionIdsByCommentId::mutate(post_id, |ids| ids.push(reaction_id));
-        <CommentReactionIdByAccount<T>>::insert((owner.clone(), post_id), reaction_id);
-      } else {
-        ReactionIdsByPostId::mutate(post_id, |ids| ids.push(reaction_id));
-        <PostReactionIdByAccount<T>>::insert((owner.clone(), post_id), reaction_id);
-      }
-
+      ReactionIdsByPostId::mutate(post_id, |ids| ids.push(reaction_id));
+      <PostReactionIdByAccount<T>>::insert((owner.clone(), post_id), reaction_id);
       Self::deposit_event(RawEvent::PostReactionCreated(owner.clone(), post_id, reaction_id));
     }
 

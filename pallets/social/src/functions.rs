@@ -148,20 +148,20 @@ impl<T: Trait> Module<T> {
         ensure!(comment.is_comment(), Error::<T>::PostIsNotAComment);
 
         if comment.created.account != account {
-            if let Some(score_diff) = Self::comment_score_by_account((account.clone(), comment_id, action)) {
+            if let Some(score_diff) = Self::post_score_by_account((account.clone(), comment_id, action)) {
                 let reputation_diff = Self::account_reputation_diff_by_account((account.clone(), comment.created.account.clone(), action)).ok_or(Error::<T>::ReputationDiffNotFound)?;
                 comment.score = comment.score.checked_add(score_diff as i32 * -1).ok_or(Error::<T>::OutOfBoundsRevertingCommentScore)?;
                 Self::change_social_account_reputation(comment.created.account.clone(), account.clone(), reputation_diff * -1, action)?;
-                <CommentScoreByAccount<T>>::remove((account.clone(), comment_id, action));
+                <PostScoreByAccount<T>>::remove((account.clone(), comment_id, action));
             } else {
                 match action {
                     ScoringAction::UpvoteComment => {
-                        if Self::comment_score_by_account((account.clone(), comment_id, ScoringAction::DownvoteComment)).is_some() {
+                        if Self::post_score_by_account((account.clone(), comment_id, ScoringAction::DownvoteComment)).is_some() {
                             Self::change_comment_score(account.clone(), comment, ScoringAction::DownvoteComment)?;
                         }
                     },
                     ScoringAction::DownvoteComment => {
-                        if Self::comment_score_by_account((account.clone(), comment_id, ScoringAction::UpvoteComment)).is_some() {
+                        if Self::post_score_by_account((account.clone(), comment_id, ScoringAction::UpvoteComment)).is_some() {
                             Self::change_comment_score(account.clone(), comment, ScoringAction::UpvoteComment)?;
                         }
                     },
@@ -174,7 +174,7 @@ impl<T: Trait> Module<T> {
                 let score_diff = Self::get_score_diff(social_account.reputation, action);
                 comment.score = comment.score.checked_add(score_diff as i32).ok_or(Error::<T>::OutOfBoundsUpdatingCommentScore)?;
                 Self::change_social_account_reputation(comment.created.account.clone(), account.clone(), score_diff, action)?;
-                <CommentScoreByAccount<T>>::insert((account, comment_id, action), score_diff);
+                <PostScoreByAccount<T>>::insert((account, comment_id, action), score_diff);
             }
             <PostById<T>>::insert(comment_id, comment.clone());
         }
@@ -254,54 +254,29 @@ impl<T: Trait> Module<T> {
         Ok(())
     }
 
-    pub fn share_post_by_extension(account: T::AccountId, original_post_id: PostId, shared_post_id: PostId) -> DispatchResult {
-        let ref mut original_post = Self::post_by_id(original_post_id).ok_or(Error::<T>::OriginalPostNotFound)?;
-        if original_post.is_comment() {
-            Self::share_comment(account, original_post, shared_post_id)?;
-        } else {
-            Self::share_post(account, original_post, shared_post_id)?;
-        }
-
-        Ok(())
-    }
-
-    fn share_post(account: T::AccountId, original_post: &mut Post<T>, shared_post_id: PostId) -> DispatchResult {
-        original_post.shares_count = original_post.shares_count.checked_add(1).ok_or(Error::<T>::OverflowTotalSharesSharingPost)?;
+    pub fn share_post(account: T::AccountId, original_post: &mut Post<T>, shared_post_id: PostId) -> DispatchResult {
+        original_post.shares_count = original_post.shares_count.checked_add(1).ok_or(Error::<T>::OverflowTotalShares)?;
 
         let original_post_id = original_post.id;
 
         let mut shares_count = Self::post_shares_by_account((account.clone(), original_post_id));
-        shares_count = shares_count.checked_add(1).ok_or(Error::<T>::OverflowPostSharesSharingPost)?;
+        shares_count = shares_count.checked_add(1).ok_or(Error::<T>::OverflowPostShares)?;
 
         if shares_count == 1 {
-            Self::change_post_score(account.clone(), original_post, ScoringAction::SharePost)?;
+            Self::change_post_score_by_extension(account.clone(), original_post, {
+                if original_post.is_comment() { ScoringAction::ShareComment } else {ScoringAction::SharePost}
+            })?;
         }
 
-        <PostById<T>>::insert(original_post_id, original_post);
+        <PostById<T>>::insert(original_post_id, original_post.clone());
         <PostSharesByAccount<T>>::insert((account.clone(), original_post_id), shares_count);
         SharedPostIdsByOriginalPostId::mutate(original_post_id, |ids| ids.push(shared_post_id));
 
-        Self::deposit_event(RawEvent::PostShared(account, original_post_id));
-
-        Ok(())
-    }
-
-    fn share_comment(account: T::AccountId, original_comment: &mut Post<T>, shared_post_id: PostId) -> DispatchResult {
-        original_comment.shares_count = original_comment.shares_count.checked_add(1).ok_or(Error::<T>::OverflowTotalSharesSharingComment)?;
-
-        let original_comment_id = original_comment.id;
-
-        let mut shares_count = Self::comment_shares_by_account((account.clone(), original_comment_id));
-        shares_count = shares_count.checked_add(1).ok_or(Error::<T>::OverflowCommentSharesByAccount)?;
-
-        if shares_count == 1 {
-            Self::change_comment_score(account.clone(), original_comment, ScoringAction::ShareComment)?;
+        if original_post.is_comment() {
+            Self::deposit_event(RawEvent::CommentShared(account, original_post_id));
+        } else {
+            Self::deposit_event(RawEvent::PostShared(account, original_post_id));
         }
-
-        <CommentSharesByAccount<T>>::insert((account.clone(), original_comment_id), shares_count);
-        SharedPostIdsByOriginalCommentId::mutate(original_comment_id, |ids| ids.push(shared_post_id));
-
-        Self::deposit_event(RawEvent::CommentShared(account, original_comment_id));
 
         Ok(())
     }
