@@ -7,6 +7,7 @@ use sp_consensus_aura::sr25519::{AuthorityId as AuraId};
 use grandpa_primitives::{AuthorityId as GrandpaId};
 use sc_service;
 use sp_runtime::traits::{Verify, IdentifyAccount};
+use hex_literal::hex;
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -104,7 +105,7 @@ impl Alternative {
 				None
 			),
 			Alternative::StagingTestnet => ChainSpec::from_genesis(
-				"Subsocial Testnet",
+				"Subsocial Barracuda Testnet",
 				"subsocial_testnet",
 				|| testnet_genesis(vec![
 					get_authority_keys_from_seed("Alice"),
@@ -114,11 +115,12 @@ impl Alternative {
 				vec![
 					get_account_id_from_seed::<sr25519::Public>("Alice"),
 					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
 					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+					hex!["74ae9d388c02fe51b3b2c3a4d3418329eea299bb06faabe15fdeffb1e4f2aa33"].into(),
+					hex!["f866807957616cb829f95713fb8eb441bb0d9137d2ce6ac93ce05db304e55e23"].into(),
+					hex!["5a22d4cc8281e5b74fe257c5b21010aa81a7846128eca2b11dbd42dd08cb3b5b"].into(),
+					hex!["ca0f8b01b79d254f871f8f375d5d4b14a964f59741f0b3dc9493473ec63f0c7c"].into()
 				],
 				true),
 				vec![],
