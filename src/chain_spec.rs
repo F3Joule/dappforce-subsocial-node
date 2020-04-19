@@ -3,6 +3,7 @@ use subsocial_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
 	SudoConfig, IndicesConfig, SystemConfig, WASM_BINARY, Signature
 };
+use telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::{AuthorityId as AuraId};
 use grandpa_primitives::{AuthorityId as GrandpaId};
 use sc_service;
@@ -10,7 +11,7 @@ use sp_runtime::traits::{Verify, IdentifyAccount};
 use hex_literal::hex;
 
 // Note this is the URL for the telemetry server
-//const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
+const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::ChainSpec<GenesisConfig>;
@@ -124,7 +125,9 @@ impl Alternative {
 				],
 				true),
 				vec![],
-				None,
+				Some(TelemetryEndpoints::new(
+					vec![(STAGING_TELEMETRY_URL.to_string(), 0)])
+				),
 				None,
 				None,
 				None
