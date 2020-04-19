@@ -8,10 +8,6 @@ services:
     image: dappforce/subsocial-node:latest
     container_name: subsocial-node
     network_mode: "host"
-    ports:
-      - "9944:9944"
-      - "30333:30333"
-      - "9933:9933"
     restart: on-failure
     volumes:
       - chain_data:/data
