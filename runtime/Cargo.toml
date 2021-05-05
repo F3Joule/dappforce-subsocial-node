@@ -56,6 +56,10 @@ pallet-utils = { default-features = false, path = '../pallets/utils' }
 
 subsocial-primitives = { default-features = false, path = '../primitives' }
 
+# ORML dependencies
+orml-tokens = { default-features = false, version = '0.4.0' }
+orml-currencies = { default-features = false, version = '0.4.0' }
+
 # Substrate dependencies
 frame-benchmarking = { default-features = false, optional = true, version = '3.0.0' }
 frame-executive = { default-features = false, version = '3.0.0' }
@@ -130,9 +134,11 @@ std = [
     'sp-version/std',
     'sp-io/std',
     'subsocial-primitives/std',
-#    'pallet-donations/std',
+    'orml-tokens/std',
+    'orml-currencies/std',
+    #'pallet-donations/std',
     'pallet-faucets/std',
-#    'pallet-moderation/std',
+    #'pallet-moderation/std',
     'pallet-permissions/std',
     'pallet-post-history/std',
     'pallet-posts/std',
@@ -146,7 +152,7 @@ std = [
     'pallet-space-history/std',
     'pallet-space-ownership/std',
     'pallet-spaces/std',
-#    'session-keys/std',
-#    'pallet-subscriptions/std',
+    #'session-keys/std',
+    #'pallet-subscriptions/std',
     'pallet-utils/std',
 ]
