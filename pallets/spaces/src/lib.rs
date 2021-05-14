@@ -3,7 +3,7 @@
 use codec::{Decode, Encode};
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, ensure,
-    dispatch::{DispatchError, DispatchResult},
+    dispatch::{DispatchError, DispatchResult, DispatchResultWithPostInfo},
     traits::{Get, Currency, ExistenceRequirement, ReservableCurrency},
 };
 use sp_runtime::RuntimeDebug;
@@ -15,7 +15,7 @@ use df_traits::{
     moderation::{IsAccountBlocked, IsContentBlocked},
 };
 use pallet_permissions::{Module as Permissions, SpacePermission, SpacePermissions, SpacePermissionsContext};
-use pallet_utils::{Module as Utils, Error as UtilsError, SpaceId, WhoAndWhen, Content};
+use pallet_utils::{Module as Utils, Error as UtilsError, SpaceId, WhoAndWhen, Content, BaseFeeFor};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct Space<T: Trait> {
@@ -156,7 +156,7 @@ decl_module! {
       handle_opt: Option<Vec<u8>>,
       content: Content,
       permissions_opt: Option<SpacePermissions>
-    ) -> DispatchResult {
+    ) -> DispatchResultWithPostInfo {
       let owner = ensure_signed(origin)?;
 
       Utils::<T>::is_valid_content(content.clone())?;
@@ -194,7 +194,9 @@ decl_module! {
       NextSpaceId::mutate(|n| { *n += 1; });
 
       Self::deposit_event(RawEvent::SpaceCreated(owner, space_id));
-      Ok(())
+
+      let creation_fee = pallet_utils::Module::<T>::creation_fees(BaseFeeFor::SpaceCreation).unwrap_or_default();
+      Ok(Some(500_000 + T::DbWeight::get().reads_writes(4, 4) + creation_fee).into())
     }
 
     #[weight = 500_000 + T::DbWeight::get().reads_writes(2, 3)]

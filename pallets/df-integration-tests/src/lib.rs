@@ -4,7 +4,7 @@ mod tests {
         assert_ok, assert_noop,
         impl_outer_origin, parameter_types,
         weights::Weight,
-        dispatch::DispatchResult,
+        dispatch::{DispatchResult, DispatchResultWithPostInfo},
         storage::StorageMap,
     };
     use sp_core::H256;
@@ -546,7 +546,7 @@ mod tests {
         PostExtension::SharedPost(post_id)
     }
 
-    fn _create_default_space() -> DispatchResult {
+    fn _create_default_space() -> DispatchResultWithPostInfo {
         _create_space(None, None, None, None)
     }
 
@@ -555,7 +555,7 @@ mod tests {
         handle: Option<Option<Vec<u8>>>,
         content: Option<Content>,
         permissions: Option<Option<SpacePermissions>>
-    ) -> DispatchResult {
+    ) -> DispatchResultWithPostInfo {
         _create_space_with_parent_id(
             origin,
             None,
@@ -571,7 +571,7 @@ mod tests {
         handle: Option<Option<Vec<u8>>>,
         content: Option<Content>,
         permissions: Option<Option<SpacePermissions>>
-    ) -> DispatchResult {
+    ) -> DispatchResultWithPostInfo {
         _create_space_with_parent_id(
             origin,
             parent_id_opt,
@@ -587,7 +587,7 @@ mod tests {
         handle: Option<Option<Vec<u8>>>,
         content: Option<Content>,
         permissions: Option<Option<SpacePermissions>>
-    ) -> DispatchResult {
+    ) -> DispatchResultWithPostInfo {
         Spaces::create_space(
             origin.unwrap_or_else(|| Origin::signed(ACCOUNT1)),
             parent_id_opt.unwrap_or(None),

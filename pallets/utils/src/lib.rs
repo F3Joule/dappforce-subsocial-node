@@ -8,13 +8,14 @@ use frame_support::{
         Currency, Get,
         Imbalance, OnUnbalanced,
     },
+    weights::Weight,
 };
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{RuntimeDebug, traits::SaturatedConversion};
 use sp_std::{
     collections::btree_set::BTreeSet,
     prelude::*,
 };
-use frame_system::{self as system};
+use frame_system::{self as system, ensure_root};
 
 #[cfg(test)]
 mod mock;
@@ -70,6 +71,12 @@ impl Content {
     }
 }
 
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub enum BaseFeeFor {
+    SpaceCreation,
+    PostCreation
+}
+
 type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 type NegativeImbalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::NegativeImbalance;
@@ -92,6 +99,9 @@ pub trait Trait: system::Trait + pallet_timestamp::Trait
 decl_storage! {
     trait Store for Module<T: Trait> as UtilsModule {
         pub TreasuryAccount get(fn treasury_account) build(|config| config.treasury_account.clone()): T::AccountId;
+
+        pub CreationFees get(fn creation_fees):
+            map hasher(blake2_128_concat) BaseFeeFor => Option<Weight>;
     }
     add_extra_genesis {
         config(treasury_account): T::AccountId;
@@ -117,6 +127,17 @@ decl_module! {
 
         // Initializing events
         fn deposit_event() = default;
+
+        #[weight = 10_000]
+        pub fn change_creation_fee(origin, fee_for: BaseFeeFor, new_fee: BalanceOf<T>) -> DispatchResult {
+            ensure_root(origin)?;
+
+            let weight_based_on_fee: Weight = new_fee.saturated_into();
+
+            CreationFees::insert(fee_for, weight_based_on_fee);
+
+            Ok(())
+        }
     }
 }
 

@@ -542,7 +542,7 @@ construct_runtime!(
 		SpaceHistory: pallet_space_history::{Module, Storage},
 		SpaceOwnership: pallet_space_ownership::{Module, Call, Storage, Event<T>},
 		Spaces: pallet_spaces::{Module, Call, Storage, Event<T>, Config<T>},
-		Utils: pallet_utils::{Module, Storage, Event<T>, Config<T>},
+		Utils: pallet_utils::{Module, Call, Storage, Event<T>, Config<T>},
 
 		// New experimental pallets. Not recommended to use in production yet.
 
